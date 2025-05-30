@@ -78,6 +78,8 @@ embeddings. The RGB values of input videos should be normalized in [0.0, 1.0].
 | Prior SOTA (B) | 77.1 | 34.0 | 58.2 | 55.6 | 33.3 | 35.8 | 21.1 | 25.9 |
 | Prior SOTA (L+) | 82.8 | 40.3 | 67.4 | 69.6 | 39.9 | 36.7 | 24.4 | 26.2 |
 
+### Results on zero-shot video-text retrieval and classification tasks with frozen backbones
+
 *"Public"* denotes models we released in this repository. *"Paper"* and
 *"Prior SOTA"* denote our models and previous best-performing models reported
 in the [paper](https://arxiv.org/abs/2402.13217), respectively. Our *public*
