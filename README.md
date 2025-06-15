@@ -22,13 +22,13 @@ functions for checkpoint loading and model inference.
 
 ## Updates
 
+* **[Jun-15-25]:** Added models to HuggingFace. [[`HuggingFace Link`](https://huggingface.co/google/videoprism)]
 * **[Jun-05-25]:** Added Colab notebook for demo. [[`Colab Demo`](https://colab.research.google.com/github/google-deepmind/videoprism/blob/main/videoprism/colabs/videoprism_video_encoder_demo.ipynb)]
 * **[Jun-03-25]:** VideoPrism video encoders (ViT-B and ViT-L) are released. [[`Blog`](https://research.google/blog/videoprism-a-foundational-visual-encoder-for-video-understanding/)] [[`Paper`](https://arxiv.org/abs/2402.13217)] :fire::fire:
 
 ## TODOs
 
 - [ ] Release text encoders for cross-modal retrieval.
-- [ ] Release models on Hugging Face.
 - [ ] Add PyTorch model support.
 
 ## Getting started
