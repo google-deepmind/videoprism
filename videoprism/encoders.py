@@ -383,8 +383,8 @@ class FactorizedEncoder(nn.Module):
       train: bool = False,
       return_intermediate: bool = False,
       frame_paddings: Array | None = None,
-  ) -> Array | tuple[Array, dict[str, Array]]:
-    """Computes predictions for `input_batch`.
+  ) -> tuple[Array, dict[str, Array]]:
+    """Computes predictions for batched inputs.
 
     Args:
       inputs: Input image tensor of shape [B, T, H, W, 3] (H == W).
@@ -394,8 +394,9 @@ class FactorizedEncoder(nn.Module):
         1 denotes padding frame.
 
     Returns:
-      Output tensor of shape [B, T*N, D], and optionally a dictionary of
-      intermediate features determined by the `return_intermediate` flag.
+      Output spatiotemporal feature tensor of shape [B, T*N, D], and a
+      dictionary of intermediate spatial features, which will be empty if
+        `return_intermediate` is False.
     """
     b, t, h, w, c = inputs.shape
     assert h == w
@@ -428,20 +429,22 @@ class FactorizedEncoder(nn.Module):
       train: bool = False,
       return_intermediate: bool = False,
       patches_paddings: Array | None = None,
-  ) -> Array | tuple[Array, dict[str, Array]]:
+  ) -> tuple[Array, dict[str, Array]]:
     """Computes predictions for patches.
 
     Args:
       patches: Input patches tensor of shape [B * T, (H * W / P^2), P^2 * C].
       image_shape: Original image shape (T, H, W).
       train: If the model is in the train mode.
-      return_intermediate: If intermediate features are also returned.
+      return_intermediate: If intermediate spatial features are also returned in
+        a dictionary with key `spatial_features`.
       patches_paddings: Optional binary tensor of shape [B * T, (H * W / P^2)]
         indicating padding. 1 denotes padded patch.
 
     Returns:
-      Output tensor of shape [B, T*N, D], and optionally a dictionary of
-      intermediate features determined by the `return_intermediate` flag.
+      features: Output spatiotemporal feature tensor of shape [B, T*N, D].
+      outputs: A dictionary of intermediate spatial features. Empty if
+        `return_intermediate` is False.
     """
     t, h, w = image_shape
     b = patches.shape[0] // t
@@ -517,13 +520,15 @@ class FactorizedEncoder(nn.Module):
     features = einshape.jax_einshape(  # (B, T * N, D).
         '(bn)td->b(tn)d', features, b=b
     )
+
+    outputs = {}
     if return_intermediate:
       spatial_features = einshape.jax_einshape(
           '(bt)nd->b(tn)d', spatial_features, t=t
       )
-      return features, {'spatial_features': spatial_features}
-    else:
-      return features
+      outputs['spatial_features'] = spatial_features
+
+    return features, outputs
 
 
 class TextEncoder(nn.Module):
