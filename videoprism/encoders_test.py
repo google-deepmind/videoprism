@@ -217,6 +217,79 @@ class EncodersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 20 if scan else 36)
     self.assertEqual(outputs.shape, (batch_size, seq_len + 1, dim))
 
+  @chex.variants(with_jit=True)
+  @parameterized.named_parameters(
+      ('train', False, True, False),
+      ('scan_and_train', True, True, False),
+      ('return_intermediate', True, False, True),
+  )
+  def test_factorized_video_clip(
+      self, scan: bool, train: bool, return_intermediate: bool
+  ):
+    batch_size, num_frames, image_size, patch_size, dim = 1, 4, 16, 4, 8
+    np_inputs = np.random.normal(
+        0.0,
+        0.1,
+        [batch_size, num_frames, image_size, image_size, 3],
+    ).astype('float32')
+    inputs = jnp.asarray(np_inputs)
+
+    seq_len, vocab_size = 10, 20
+    np_texts = np.random.randint(
+        0, vocab_size, [batch_size, seq_len]
+    ).astype('int32')
+    texts = jnp.asarray(np_texts)
+    np_text_paddings = np.zeros([batch_size, seq_len], dtype='float32')
+    np_text_paddings[:, seq_len // 2 :] = 1
+    text_paddings = jnp.asarray(np_text_paddings)
+
+    prng_key = jax.random.PRNGKey(seed=123)
+    net = encoders.FactorizedVideoCLIP(
+        name='net',
+        patch_size=patch_size,
+        pos_emb_shape=(16, 16, 16),
+        num_spatial_layers=2,
+        num_temporal_layers=2,
+        mlp_dim=4,
+        num_auxiliary_layers=1,
+        vocabulary_size=vocab_size,
+        enable_causal_atten=True,
+        num_unimodal_layers=2,
+        norm_policy='pre',
+        model_dim=dim,
+        num_heads=2,
+        atten_logit_cap=50.0,
+        scan=scan,
+    )
+
+    @self.variant
+    def var_fn():
+      return net.init_with_output(
+          prng_key,
+          inputs=inputs,
+          texts=texts,
+          text_paddings=text_paddings,
+          train=train,
+          normalize=True,
+          return_intermediate=return_intermediate,
+      )
+
+    (vision_embeddings, text_embeddings, outputs), params = var_fn()
+    self.assertLen(jax.tree_util.tree_flatten(params)[0], 88 if scan else 136)
+    self.assertEqual(vision_embeddings.shape, (batch_size, dim))
+    self.assertEqual(text_embeddings.shape, (batch_size, dim))
+    if return_intermediate:
+      self.assertEqual(
+          outputs['spatial_features'].shape,
+          (batch_size, num_frames * (image_size // patch_size) ** 2, dim),
+      )
+      self.assertEqual(
+          outputs['spatiotemporal_features'].shape,
+          (batch_size, num_frames * (image_size // patch_size) ** 2, dim),
+      )
+    else:
+      self.assertEmpty(outputs)
+
 
 if __name__ == '__main__':
   absltest.main()

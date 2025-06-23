@@ -42,12 +42,22 @@ import flax
 from videoprism import encoders
 from videoprism import utils
 
+TEXT_MAX_LEN: int = 64
+TEXT_VOCAB_SIZE: int = 64_000
+TEXT_SPM_PATH: str = 'gs://videoprism/vocabs/64000/sentencepiece.model'
+
 CHECKPOINTS = {
     'videoprism_public_v1_base': (
         'gs://videoprism/v1/flax_base_f16r288_repeated.npz'
     ),
     'videoprism_public_v1_large': (
         'gs://videoprism/v1/flax_large_f8r288_repeated.npz'
+    ),
+    'videoprism_lvt_public_v1_base': (
+        'gs://videoprism/v1/flax_lvt_base_f16r288_repeated.npz'
+    ),
+    'videoprism_lvt_public_v1_large': (
+        'gs://videoprism/v1/flax_lvt_large_f8r288_repeated.npz'
     ),
 }
 
@@ -85,6 +95,54 @@ CONFIGS = {
         atten_logit_cap=50.0,
         scan=True,
     ),
+    'videoprism_lvt_v1_base': dict(
+        patch_size=18,
+        pos_emb_shape=(16, 16, 16),
+        num_spatial_layers=12,
+        num_temporal_layers=4,
+        mlp_dim=3072,
+        num_auxiliary_layers=2,
+        vocabulary_size=TEXT_VOCAB_SIZE,
+        enable_causal_atten=True,
+        num_unimodal_layers=12,
+        norm_policy='pre',
+        model_dim=768,
+        num_heads=12,
+        atten_logit_cap=50.0,
+        scan=True,
+    ),
+    'videoprism_lvt_v1_large': dict(
+        patch_size=18,
+        pos_emb_shape=(8, 16, 16),
+        num_spatial_layers=24,
+        num_temporal_layers=4,
+        mlp_dim=4096,
+        num_auxiliary_layers=2,
+        vocabulary_size=TEXT_VOCAB_SIZE,
+        enable_causal_atten=True,
+        num_unimodal_layers=12,
+        norm_policy='pre',
+        model_dim=1024,
+        num_heads=16,
+        atten_logit_cap=50.0,
+        scan=True,
+    ),
+    'videoprism_lvt_v1_giant': dict(
+        patch_size=18,
+        pos_emb_shape=(8, 16, 16),
+        num_spatial_layers=40,
+        num_temporal_layers=4,
+        mlp_dim=6144,
+        num_auxiliary_layers=2,
+        vocabulary_size=TEXT_VOCAB_SIZE,
+        enable_causal_atten=True,
+        num_unimodal_layers=16,
+        norm_policy='primer_hybrid',
+        model_dim=1408,
+        num_heads=16,
+        atten_logit_cap=50.0,
+        scan=True,
+    ),
 }
 
 
@@ -103,9 +161,26 @@ def videoprism_v1_giant():
   return encoders.FactorizedEncoder(**CONFIGS['videoprism_v1_giant'])
 
 
+def videoprism_lvt_v1_base():
+  """Builds VideoPrism LvT v1 base model."""
+  return encoders.FactorizedVideoCLIP(**CONFIGS['videoprism_lvt_v1_base'])
+
+
+def videoprism_lvt_v1_large():
+  """Builds VideoPrism LvT v1 large model."""
+  return encoders.FactorizedVideoCLIP(**CONFIGS['videoprism_lvt_v1_large'])
+
+
+def videoprism_lvt_v1_giant():
+  """Builds VideoPrism LvT v1 giant model."""
+  return encoders.FactorizedVideoCLIP(**CONFIGS['videoprism_lvt_v1_giant'])
+
+
 MODELS = {
     'videoprism_public_v1_base': videoprism_v1_base,
     'videoprism_public_v1_large': videoprism_v1_large,
+    'videoprism_lvt_public_v1_base': videoprism_lvt_v1_base,
+    'videoprism_lvt_public_v1_large': videoprism_lvt_v1_large,
 }
 
 
