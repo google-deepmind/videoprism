@@ -39,10 +39,13 @@ outputs = forward_fn(model_inputs)
 from collections.abc import Mapping, Sequence
 
 import flax
+import huggingface_hub
 import numpy as np
 from videoprism import encoders
 from videoprism import tokenizers
 from videoprism import utils
+
+hf_hub_download = huggingface_hub.hf_hub_download
 
 TEXT_TOKENIZERS = {
     'c4_en': (  # vocab_size=32_000
@@ -57,6 +60,13 @@ CHECKPOINTS = {
     'videoprism_public_v1_large': (
         'gs://videoprism/v1/flax_large_f8r288_repeated.npz'
     ),
+}
+
+HF_REPO = 'google/videoprism'
+
+HF_CHECKPOINTS = {
+    'videoprism_public_v1_base': 'videoprism_public_v1_base.npz',
+    'videoprism_public_v1_large': 'videoprism_public_v1_large.npz',
 }
 
 CONFIGS = {
@@ -122,7 +132,7 @@ def load_pretrained_weights(
     checkpoint_path: str | None = None,
     checkpoints: Mapping[str, str] | None = None,
 ):
-  """Loads pretrained model weight.
+  """Loads pretrained model weight from google cloud storage.
 
   Args:
     model_name: A string for the model name.
@@ -135,6 +145,30 @@ def load_pretrained_weights(
   """
   checkpoints = checkpoints or CHECKPOINTS
   checkpoint_path = checkpoint_path or checkpoints.get(model_name)
+  variables = utils.load_checkpoint(checkpoint_path)
+  return flax.core.freeze(variables)
+
+
+def load_pretrained_weights_from_hf(
+    model_name: str | None,
+    checkpoint_path: str | None = None,
+    checkpoints: Mapping[str, str] | None = None,
+):
+  """Loads pretrained model weight from Hugging Face.
+
+  Args:
+    model_name: A string for the model name.
+    checkpoint_path: Optional path of the model checkpoint.
+    checkpoints: Mapping from model name to checkpoint path. Used with
+      `model_name`. If None, use the default `CHECKPOINTS`.
+
+  Returns:
+    Restored Flax model weights.
+  """
+  checkpoints = checkpoints or HF_CHECKPOINTS
+  checkpoint_path = checkpoint_path or hf_hub_download(
+      repo_id=HF_REPO, filename=checkpoints[model_name]
+  )
   variables = utils.load_checkpoint(checkpoint_path)
   return flax.core.freeze(variables)
 
