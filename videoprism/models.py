@@ -67,6 +67,14 @@ CHECKPOINTS = {
         'google/videoprism-large-f8r288',
         'flax_large_f8r288_repeated.npz',
     ),
+    'google/videoprism-base-f16r288': (
+        'google/videoprism-base-f16r288',
+        'flax_base_f16r288_repeated.npz',
+    ),
+    'google/videoprism-large-f8r288': (
+        'google/videoprism-large-f8r288',
+        'flax_large_f8r288_repeated.npz',
+    ),
 }
 
 CONFIGS = {
@@ -148,7 +156,9 @@ def load_pretrained_weights(
   checkpoints = checkpoints or CHECKPOINTS
   checkpoint_path = checkpoint_path or checkpoints.get(model_name)
   # Handle Hugging Face checkpoints using suffix _hf.
-  if model_name is not None and model_name.endswith('_hf'):
+  if model_name is not None and (
+      model_name.startswith('google/') or model_name.endswith('_hf')
+  ):
     repo_id, filename = checkpoint_path
     checkpoint_path = huggingface_hub.hf_hub_download(
         repo_id=repo_id, filename=filename
