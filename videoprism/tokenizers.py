@@ -12,13 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tokenizers for text encoders."""
+"""Tokenizers for text encoders.
+
+This module avoids a hard dependency on TensorFlow. TensorFlow-backed ops are
+available when TensorFlow is installed; otherwise, pure-Python tokenization
+works, and TensorFlow-specific helpers will raise a clear error.
+"""
 
 from collections.abc import Sequence
 from typing import Protocol
 
-import tensorflow as tf
-from tensorflow.io import gfile
+import os
+from typing import Any
+
+try:  # Optional TensorFlow dependency
+  import tensorflow as tf  # type: ignore
+  from tensorflow.io import gfile  # type: ignore
+  _TF_AVAILABLE = True
+except Exception:  # pragma: no cover - optional path
+  tf = None  # type: ignore[assignment]
+  gfile = None  # type: ignore[assignment]
+  _TF_AVAILABLE = False
 
 import sentencepiece
 
@@ -44,7 +58,7 @@ class Tokenizer(Protocol):
 
   def to_int_tf_op(
       self, text: str | Sequence[str], *, bos: bool = False, eos: bool = False
-  ) -> tf.Tensor | tf.RaggedTensor:
+  ) -> Any:
     """Same as `to_int()`, but as TF ops to be used in data pipelines.
 
     Args:
@@ -82,8 +96,21 @@ class SentencePieceTokenizer(Tokenizer):
     Args:
       model_path: A path to load the SentencePiece model.
     """
-    with gfile.GFile(model_path, "rb") as f:
-      model_bytes = f.read()
+    # Support both local files and GCS paths when TensorFlow is available.
+    if isinstance(model_path, os.PathLike):
+      model_path = os.fspath(model_path)
+
+    if isinstance(model_path, str) and model_path.startswith("gs://"):
+      if not _TF_AVAILABLE:
+        raise ImportError(
+            "TensorFlow is required to read GCS paths (gs://...). "
+            "Install tensorflow or provide a local file path."
+        )
+      with gfile.GFile(model_path, "rb") as f:  # type: ignore[arg-type]
+        model_bytes = f.read()
+    else:
+      with open(model_path, "rb") as f:
+        model_bytes = f.read()
 
     self._model = SentencePieceProcessor()
     self._model.LoadFromSerializedProto(model_bytes)
@@ -115,7 +142,7 @@ class SentencePieceTokenizer(Tokenizer):
 
   def to_int_tf_op(
       self, text: str | Sequence[str], *, bos: bool = False, eos: bool = False
-  ) -> tf.Tensor | tf.RaggedTensor:
+  ) -> Any:
     """Same as `to_int()`, but as TF ops to be used in data pipelines.
 
     Args:
@@ -126,7 +153,12 @@ class SentencePieceTokenizer(Tokenizer):
     Returns:
       A tf.Tensor or tf.RaggedTensor of tokens.
     """
-    text = tf.convert_to_tensor(text)
+    if not _TF_AVAILABLE:
+      raise ImportError(
+          "TensorFlow is not available. `to_int_tf_op` requires TensorFlow."
+      )
+
+    text = tf.convert_to_tensor(text)  # type: ignore[call-arg]
     if text.ndim == 0:
 
       def fn(txt):
@@ -134,7 +166,7 @@ class SentencePieceTokenizer(Tokenizer):
         s = txt.numpy().decode()
         return tf.constant(self.to_int(s, bos=bos, eos=eos), tf.int32)
 
-      return tf.py_function(fn, [text], tf.int32)
+      return tf.py_function(fn, [text], tf.int32)  # type: ignore[arg-type]
     else:
 
       def fn(txt):
@@ -144,7 +176,7 @@ class SentencePieceTokenizer(Tokenizer):
         return tf.ragged.constant(toks)
 
       out_type = tf.RaggedTensorSpec([text.shape[0], None], tf.int32)
-      return tf.py_function(fn, [text], Tout=out_type)
+      return tf.py_function(fn, [text], Tout=out_type)  # type: ignore[arg-type]
 
   @property
   def pad_token(self) -> int:

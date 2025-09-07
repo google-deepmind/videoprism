@@ -16,14 +16,28 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-import jax
-from jax import numpy as jnp
+import unittest
+try:
+  import jax  # type: ignore
+  from jax import numpy as jnp  # type: ignore
+  _JAX_AVAILABLE = True
+except Exception:
+  jax = None  # type: ignore
+  jnp = None  # type: ignore
+  _JAX_AVAILABLE = False
+
+if not _JAX_AVAILABLE:
+  import unittest as _unittest
+  raise _unittest.SkipTest("JAX not available; skipping models tests.")
 import numpy as np
 from videoprism import models
 from videoprism import tokenizers
 
 
-class ModelsTest(parameterized.TestCase):
+BaseJaxTestCase = absltest.TestCase if _JAX_AVAILABLE else unittest.TestCase
+
+
+class ModelsTest(BaseJaxTestCase, parameterized.TestCase):
 
   @parameterized.parameters(
       ('videoprism_public_v1_base', True),
@@ -34,6 +48,7 @@ class ModelsTest(parameterized.TestCase):
     self.assertEqual(models.has_model(model_name), exists)
 
   @parameterized.parameters(8, 16)
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   def test_videoprism(self, num_frames):
     batch_size = 1
     np_inputs = np.random.normal(
@@ -52,6 +67,7 @@ class ModelsTest(parameterized.TestCase):
     embeddings, _ = forward_fn(inputs)
     self.assertEqual(embeddings.shape, (batch_size, num_frames * 16**2, 768))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   def test_videoprism_lvt(self):
     batch_size, num_frames = 1, 16
     np_inputs = np.random.normal(
@@ -117,4 +133,7 @@ class ModelsTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  absltest.main()
+  if _JAX_AVAILABLE:
+    absltest.main()
+  else:
+    unittest.main()

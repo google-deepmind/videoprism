@@ -16,14 +16,29 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-import chex
-import jax
-from jax import numpy as jnp
+import unittest
+try:
+  import chex  # type: ignore
+  import jax  # type: ignore
+  from jax import numpy as jnp  # type: ignore
+  _JAX_AVAILABLE = True
+except Exception:
+  chex = None  # type: ignore
+  jax = None  # type: ignore
+  jnp = None  # type: ignore
+  _JAX_AVAILABLE = False
+
+if not _JAX_AVAILABLE:
+  import unittest as _unittest
+  raise _unittest.SkipTest("JAX not available; skipping layers tests.")
 import numpy as np
-from videoprism import layers
+from videoprism import layers  # type: ignore
 
 
-class LayersTest(parameterized.TestCase):
+BaseJaxTestCase = absltest.TestCase if _JAX_AVAILABLE else unittest.TestCase
+
+
+class LayersTest(BaseJaxTestCase, parameterized.TestCase):
 
   def test_identity(self):
     inputs = jnp.ones((4, 16, 8))
@@ -31,6 +46,7 @@ class LayersTest(parameterized.TestCase):
     self.assertEqual(inputs.shape, outputs.shape)
     self.assertTrue(jnp.array_equal(inputs, outputs))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   @parameterized.parameters(True, False)
   def test_layer_norm(self, direct_scale: bool):
@@ -47,6 +63,7 @@ class LayersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 2)
     self.assertEqual(inputs.shape, outputs.shape)
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   def test_feedforward_layer(self):
     np_inputs = np.random.normal(1.0, 0.5, [10, 10, 3]).astype(np.float32)
@@ -62,6 +79,7 @@ class LayersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 2)
     self.assertEqual(outputs.shape, (10, 10, 20))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   @parameterized.parameters(True, False)
   def test_transformer_feedforward(self, train: bool):
@@ -87,6 +105,7 @@ class LayersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 6)
     self.assertEqual(outputs.shape, (batch_size, seq_len, input_dims))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   @parameterized.parameters(
       (16, 2, 5, False, [5, 16], [5, 2, 5]),
@@ -121,6 +140,7 @@ class LayersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 2)
     self.assertEqual(outputs.shape, tuple(expected_outputs_shape))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   def test_per_dim_scale(self):
     np_inputs = np.random.normal(1.5, 2.0, [5, 4]).astype(np.float32)
@@ -136,6 +156,7 @@ class LayersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 1)
     self.assertEqual(outputs.shape, (5, 4))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   @parameterized.product(
       enable_query_scale=[True, False],
@@ -184,6 +205,7 @@ class LayersTest(parameterized.TestCase):
     self.assertEqual(outputs.shape, (batch_size, seq_len, mdl_dim))
     self.assertEqual(probs.shape, (batch_size, num_heads, seq_len, seq_len))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   @parameterized.parameters(True, False)
   def test_transformer_layer(self, train: bool):
@@ -214,6 +236,7 @@ class LayersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 17)
     self.assertEqual(outputs.shape, (batch_size, seq_len, dim))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   @parameterized.product(
       scan=[True, False],
@@ -248,6 +271,7 @@ class LayersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 17 if scan else 68)
     self.assertEqual(outputs.shape, (batch_size, seq_len, dim))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   @parameterized.product(
       num_queries=[1, 4],
@@ -284,4 +308,7 @@ class LayersTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  absltest.main()
+  if _JAX_AVAILABLE:
+    absltest.main()
+  else:
+    unittest.main()
