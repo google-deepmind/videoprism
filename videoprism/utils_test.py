@@ -15,6 +15,7 @@
 """Tests for utility functions."""
 
 from absl.testing import absltest
+import unittest
 from videoprism import utils
 
 

@@ -16,15 +16,32 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-import chex
-import jax
-from jax import numpy as jnp
+import os
+import unittest
+try:
+  import chex  # type: ignore
+  import jax  # type: ignore
+  from jax import numpy as jnp  # type: ignore
+  _JAX_AVAILABLE = True
+except Exception:
+  chex = None  # type: ignore
+  jax = None  # type: ignore
+  jnp = None  # type: ignore
+  _JAX_AVAILABLE = False
+
+if not _JAX_AVAILABLE:
+  import unittest as _unittest
+  raise _unittest.SkipTest("JAX not available; skipping encoders tests.")
 import numpy as np
-from videoprism import encoders
+from videoprism import encoders  # type: ignore
 
 
-class EncodersTest(parameterized.TestCase):
+BaseJaxTestCase = absltest.TestCase if _JAX_AVAILABLE else unittest.TestCase
 
+
+class EncodersTest(BaseJaxTestCase, parameterized.TestCase):
+
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   def test_embedding_layer(self):
     num_classes, dim, input_shape = 8, 10, (5, 20)
@@ -46,6 +63,7 @@ class EncodersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 1)
     self.assertEqual(outputs.shape, input_shape + (dim,))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   def test_positional_embedding_layer(self):
     seq_len, dim = 8, 10
@@ -65,6 +83,7 @@ class EncodersTest(parameterized.TestCase):
     self.assertEmpty(jax.tree_util.tree_flatten(params)[0])
     self.assertEqual(outputs.shape, (1, seq_len, dim))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True, without_jit=True)
   def test_trainable_positional_embedding_layer(self):
     seq_len, dim = 8, 10
@@ -84,6 +103,7 @@ class EncodersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 1)
     self.assertEqual(outputs.shape, (1, seq_len, dim))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True)
   @parameterized.product(
       scan=[True, False],
@@ -112,6 +132,7 @@ class EncodersTest(parameterized.TestCase):
     self.assertLen(jax.tree_util.tree_flatten(params)[0], 16 if scan else 32)
     self.assertEqual(outputs.shape, (batch_size, seq_len, dim))
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True)
   @parameterized.named_parameters(
       ('train', False, True, False, False),
@@ -180,6 +201,7 @@ class EncodersTest(parameterized.TestCase):
     else:
       self.assertEmpty(outputs)
 
+  @unittest.skipIf(not _JAX_AVAILABLE, "JAX not available")
   @chex.variants(with_jit=True)
   @parameterized.named_parameters(
       ('train', True, False),
@@ -351,4 +373,7 @@ class EncodersTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  absltest.main()
+  if _JAX_AVAILABLE:
+    absltest.main()
+  else:
+    unittest.main()

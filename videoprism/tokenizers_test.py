@@ -16,7 +16,13 @@
 
 from absl.testing import parameterized
 import numpy as np
-import tensorflow as tf
+import unittest
+try:
+  import tensorflow as tf  # type: ignore
+  _TF_AVAILABLE = True
+except Exception:
+  tf = None  # type: ignore
+  _TF_AVAILABLE = False
 from videoprism import tokenizers
 
 
@@ -36,7 +42,13 @@ class PyToTfWrapper:
     return ret.numpy().tolist()
 
 
-class TokenizersTest(tf.test.TestCase, parameterized.TestCase):
+BaseTestCase = unittest.TestCase if not _TF_AVAILABLE else tf.test.TestCase
+
+if not _TF_AVAILABLE:
+  raise unittest.SkipTest("TensorFlow not available; skipping tokenizers TF tests.")
+
+
+class TokenizersTest(BaseTestCase, parameterized.TestCase):
 
   def setUp(self):
     import os
@@ -50,6 +62,8 @@ class TokenizersTest(tf.test.TestCase, parameterized.TestCase):
       ("tf", True),
   )
   def test_sentencepiece_tokenizer(self, wrap_model):
+    if wrap_model and not _TF_AVAILABLE:
+      self.skipTest("TensorFlow not available; skipping TF-backed tokenization test.")
     model = tokenizers.SentencePieceTokenizer(self.spm_path)
     if wrap_model:
       model = PyToTfWrapper(model)
@@ -69,6 +83,8 @@ class TokenizersTest(tf.test.TestCase, parameterized.TestCase):
     )
 
   def test_sentencepiece_tokenizer_tf_data(self):
+    if not _TF_AVAILABLE:
+      self.skipTest("TensorFlow not available; skipping TF tf.data test.")
     model = tokenizers.SentencePieceTokenizer(self.spm_path)
 
     def gen():
@@ -88,4 +104,7 @@ class TokenizersTest(tf.test.TestCase, parameterized.TestCase):
 
 
 if __name__ == "__main__":
-  tf.test.main()
+  if _TF_AVAILABLE:
+    tf.test.main()
+  else:
+    unittest.main()

@@ -379,6 +379,7 @@ class FactorizedEncoder(nn.Module):
   atten_logit_cap: float = 0.0
   norm_policy: str = 'pre'
   scan: bool = False
+  allow_padding: bool = False
 
   def __call__(
       self,
@@ -402,10 +403,37 @@ class FactorizedEncoder(nn.Module):
         (shape = [B, T * N, D]). Empty if `return_intermediate` is False.
     """
     b, t, h, w, c = inputs.shape
-    assert h == w
+    if h != w:
+      if not self.allow_padding:
+        raise ValueError(f'Only square frames are supported when allow_padding=False; got H={h}, W={w}.')
+      # Pad to square by expanding the smaller side on the right/bottom.
+      max_hw = max(h, w)
+      pad_h = max_hw - h
+      pad_w = max_hw - w
+      pad_spec = ((0, 0), (0, 0), (0, pad_h), (0, pad_w), (0, 0))
+      inputs = jnp.pad(inputs, pad_spec, mode='constant')
+      h, w = max_hw, max_hw
+
     reshaped_inputs = inputs.reshape(b * t, h, w, c)  # (B * T, H, W, C).
 
     # Tokenization.
+    # If sizes are not multiples of patch_size, optionally pad.
+    if (h % self.patch_size != 0 or w % self.patch_size != 0):
+      if not self.allow_padding:
+        raise ValueError(
+            f'Image height ({h}) and width ({w}) should be multiples of patch_size ({self.patch_size}).'
+        )
+      target_h = int(np.ceil(h / self.patch_size) * self.patch_size)
+      target_w = int(np.ceil(w / self.patch_size) * self.patch_size)
+      pad_h = target_h - h
+      pad_w = target_w - w
+      reshaped_inputs = jnp.pad(
+          reshaped_inputs,
+          ((0, 0), (0, pad_h), (0, pad_w), (0, 0)),
+          mode='constant',
+      )
+      h, w = target_h, target_w
+
     patches = _image_to_patch(reshaped_inputs, self.patch_size)
     patches_paddings = None
     if frame_paddings is not None:
@@ -728,7 +756,7 @@ class FactorizedVideoCLIP(nn.Module):
 
     Args:
       inputs: Input frame image tensor of shape [B, T, H, W, 3] (H == W).
-      text_token_ids: Input text token id tensor of shape [B, L, D].
+      text_token_ids: Input text token id tensor of shape [B, L].
       text_paddings: Input text paddings of shape [B, L]. Required if
         `text_token_ids` is not None.
       train: If the model is in the train mode.
@@ -761,7 +789,7 @@ class FactorizedVideoCLIP(nn.Module):
           num_heads=self.num_heads,
           mlp_dim=self.mlp_dim,
           atten_logit_cap=self.atten_logit_cap,
-          norm_policy='pre',
+          norm_policy=self.norm_policy,
           scan=self.scan,
       )(
           inputs,
@@ -811,7 +839,10 @@ class FactorizedVideoCLIP(nn.Module):
         outputs['frame_embeddings'] = frame_embeddings
 
     if text_token_ids is not None:
-      assert text_paddings is not None, 'Text paddings are required.'
+      if text_paddings is None:
+        raise ValueError('`text_paddings` must be provided when text_token_ids is not None.')
+      if text_token_ids.ndim != 2:
+        raise ValueError(f'`text_token_ids` must have shape [B, L], got {text_token_ids.shape}.')
       text_features = TextEncoder(
           name='text_encoder',
           vocabulary_size=self.vocabulary_size,

@@ -20,9 +20,17 @@ import io
 import os
 import string
 
-import jax
+try:
+  import jax  # type: ignore
+  _JAX_AVAILABLE = True
+except Exception:  # Optional JAX import
+  jax = None  # type: ignore
+  _JAX_AVAILABLE = False
 import numpy as np
-from tensorflow.io import gfile
+try:
+  from tensorflow.io import gfile  # type: ignore
+except Exception:
+  gfile = None  # type: ignore
 
 
 def traverse_with_names(tree, with_inner_nodes=False):
@@ -66,6 +74,10 @@ def tree_flatten_with_names(tree):
   Returns:
     A list of values with names: [(name, value), ...]
   """
+  if not _JAX_AVAILABLE:
+    raise ImportError(
+        'jax is required for tree_flatten_with_names. Install jax to use this.'
+    )
   vals, tree_def = jax.tree.flatten(tree)
 
   tokens = range(len(vals))
@@ -110,6 +122,11 @@ def npload(fname):
     loaded = np.load(fname, allow_pickle=False)
   else:
     # For other (remote) paths go via gfile+BytesIO as np.load requires seeks.
+    if gfile is None:
+      raise ImportError(
+          'TensorFlow is required to read non-local paths (e.g., gs://). '
+          'Install tensorflow or use a local file path.'
+      )
     with gfile.GFile(fname, "rb") as f:
       data = f.read()
     loaded = np.load(io.BytesIO(data), allow_pickle=False)
@@ -137,32 +154,32 @@ def load_checkpoint(npz):
 
 
 def canonicalize_text(text: str) -> str:
-  """Canonicalizes text.
+  """Canonicalizes text for tokenization.
 
-  Canonicalization includes:
-  - Replace all punctuation with a whitespace.
-  - Use all lower case.
-  - Leave only one whitespace between words.
-  - End with a period.
-
-  Examples:
-    "Hello, World!" -> "hello world."
-    "Hello,World.." -> "hello world."
-    "  Hello   WORLD" -> "hello world."
+  Steps:
+  - Replace punctuation with a single whitespace.
+  - Lowercase.
+  - Collapse multiple spaces.
+  - Ensure a single trailing period, unless string becomes empty.
 
   Args:
-    text: A string for the input text.
+    text: Input text.
 
   Returns:
-    A string for the canonicalized text.
+    Canonicalized text suitable for tokenization.
   """
-  # Replace all punctuation with a whitespace.
+  if not isinstance(text, str):
+    text = str(text)
+
   p = string.punctuation
   text = text.translate(str.maketrans(p, " " * len(p)))
-  # Use all lower case.
   text = text.lower()
-  # Leave only one whitespace between words.
   text = " ".join(text.split())
-  # End with a period.
-  text = text + "."
+
+  if not text:
+    return ""
+
+  # Avoid duplicating the period if already present after previous steps.
+  if not text.endswith("."):
+    text = text + "."
   return text

@@ -898,7 +898,7 @@ class StackedTransformer(nn.Module):
   def __call__(
       self,
       inputs: Array,
-      paddings: Array,
+      paddings: Array | None,
       train: bool,
   ) -> Array:
     """Stacked Transformer layer.
@@ -911,6 +911,9 @@ class StackedTransformer(nn.Module):
     Returns:
       Output vector with shape [B, T, D].
     """
+
+    if paddings is None:
+      paddings = jnp.zeros(inputs.shape[:-1], dtype=inputs.dtype)
 
     atten_mask = compute_attention_masks_for_fprop(
         inputs, paddings, causal_attention=self.enable_causal_atten
