@@ -4,6 +4,7 @@
 [![Blog](https://img.shields.io/badge/Google_Research-Blog-green.svg)](https://research.google/blog/videoprism-a-foundational-visual-encoder-for-video-understanding/)
 [![Video Encoder Colab Demo](https://img.shields.io/static/v1?label=Video%20Encoder%20Demo&message=Google%20Colab&logo=google&color=orange)](https://colab.research.google.com/github/google-deepmind/videoprism/blob/main/videoprism/colabs/videoprism_video_encoder_demo.ipynb)
 [![Video-Text Encoder Colab Demo](https://img.shields.io/static/v1?label=Video-Text%20Encoder%20Demo&message=Google%20Colab&logo=google&color=orange)](https://colab.research.google.com/github/google-deepmind/videoprism/blob/main/videoprism/colabs/videoprism_video_text_demo.ipynb)
+[![Video Classification Colab Demo](https://img.shields.io/static/v1?label=Video%20Classification%20Demo&message=Google%20Colab&logo=google&color=orange)](https://colab.research.google.com/github/google-deepmind/videoprism/blob/main/videoprism/colabs/videoprism_video_classification_demo.ipynb)
 [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)](https://huggingface.co/collections/google/videoprism-686e823d6070ec6ad9e4b1f2)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
@@ -24,6 +25,7 @@ functions for checkpoint loading and model inference.
 
 ## Updates
 
+* **[Mar-13-26]:** Added video classification fine-tuning with the frozen backbone [[`Colab notebook`](https://colab.research.google.com/github/google-deepmind/videoprism/blob/main/videoprism/colabs/videoprism_video_encoder_demo.ipynb)]. :fire::fire:
 * **[Jul-16-25]:** Released VideoPrism video-text encoders for cross-modal retrieval [[`Colab notebook`](https://colab.research.google.com/github/google-deepmind/videoprism/blob/main/videoprism/colabs/videoprism_video_text_demo.ipynb)]. :fire::fire:
 * **[Jun-15-25]:** Added models to [[`Hugging Face`](https://huggingface.co/collections/google/videoprism-686e823d6070ec6ad9e4b1f2)].
 * **[Jun-05-25]:** Added video encoder demo [[`Colab notebook`](https://colab.research.google.com/github/google-deepmind/videoprism/blob/main/videoprism/colabs/videoprism_video_encoder_demo.ipynb)].
@@ -84,6 +86,12 @@ text_ids, text_paddings = vp.tokenize_texts(text_tokenizer, text_queries)
 video_embeddings, text_embeddings, _ = forward_fn(
   video_inputs, text_ids, text_paddings)  # Shape = [batch_size, feature_channels].
 ```
+
+## Video Classification example
+We provide a [Colab notebook for video classification](https://colab.research.google.com/github/google-deepmind/videoprism/blob/main/videoprism/colabs/videoprism_video_classification_demo.ipynb) to
+show how to fine-tune VideoPrism for video classification by keeping
+the pre-trained backbone frozen and training only
+a lightweight attention-pooler + projection head.
 
 ## Released models
 
@@ -169,6 +177,15 @@ If you use VideoPrism, please cite the following papers:
   author = {Liangzhe Yuan and Nitesh Bharadwaj Gundavarapu and Long Zhao and Hao Zhou and Yin Cui and Lu Jiang and Xuan Yang and Menglin Jia and Tobias Weyand and Luke Friedman and Mikhail Sirotenko and Huisheng Wang and Florian Schroff and Hartwig Adam and Ming-Hsuan Yang and Ting Liu and Boqing Gong},
   journal = {Transactions on Machine Learning Research (TMLR)},
   year = {2024}
+}
+
+@article{sun2024video,
+  title={Video foundation models for animal behavior analysis},
+  author={Sun, Jennifer J and Zhou, Hao and Yang, Xinyu and Zhao, Long and Yuan, Liangzhe and Seybold, Bryan and Hendon, David and Schroff, Florian and Ross, David A and Adam, Hartwig and Hu, Bo and Liu, Ting},
+  journal={bioRxiv},
+  pages={2024--07},
+  year={2024},
+  publisher={Cold Spring Harbor Laboratory}
 }
 ```
 
