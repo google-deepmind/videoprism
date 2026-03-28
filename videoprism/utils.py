@@ -47,7 +47,9 @@ def traverse_with_names(tree, with_inner_nodes=False):
         yield (key + "/" + path).rstrip("/"), v
     if with_inner_nodes:
       yield "", tree
-  elif isinstance(tree, Sequence):
+  elif isinstance(tree, Sequence) and not isinstance(
+      tree, (str, bytes, bytearray)
+  ):
     for idx in range(len(tree)):
       for path, v in traverse_with_names(tree[idx], with_inner_nodes):
         yield (str(idx) + "/" + path).rstrip("/"), v
