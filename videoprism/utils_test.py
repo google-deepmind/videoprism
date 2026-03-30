@@ -25,6 +25,17 @@ class UtilsTest(absltest.TestCase):
     self.assertEqual(utils.canonicalize_text("Hello,World.."), "hello world.")
     self.assertEqual(utils.canonicalize_text("  Hello   WORLD"), "hello world.")
 
+  def test_traverse_with_names_treats_strings_as_leaves(self):
+    tree = {"caption": "hello world"}
+    self.assertEqual(
+        list(utils.traverse_with_names(tree)),
+        [("caption", "hello world")],
+    )
+
+  def test_traverse_with_names_treats_bytes_as_leaves(self):
+    tree = {"blob": b"abc"}
+    self.assertEqual(list(utils.traverse_with_names(tree)), [("blob", b"abc")])
+
 
 if __name__ == "__main__":
   absltest.main()
