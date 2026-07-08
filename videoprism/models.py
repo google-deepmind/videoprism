@@ -383,9 +383,9 @@ def tokenize_texts(
     add_bos = tokenizer.bos_token >= 0
 
   for ids in tokenizer.to_int(inputs, bos=add_bos, eos=False):
-    ids_seq_len = len(ids)
+    ids_seq_len = len(ids)  # pyrefly: ignore[bad-argument-type]
     if ids_seq_len > max_length:
-      ids = ids[:max_length]
+      ids = ids[:max_length]  # pyrefly: ignore[bad-index]
 
     ids = np.asarray(ids, dtype=np.int32)
     paddings = np.zeros_like(ids, dtype=np.float32)

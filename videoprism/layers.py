@@ -308,7 +308,7 @@ class FeedForward(Module):
         bias_init=self.bias_init,
         name='linear',
         param_dtype=self.dtype,
-        promote_dtype=_promote_dtype,
+        promote_dtype=_promote_dtype,  # pyrefly: ignore[bad-argument-type]
     )(inputs)
     return self.activation_fn(projected_inputs)
 

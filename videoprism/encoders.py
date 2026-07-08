@@ -499,10 +499,10 @@ class FactorizedEncoder(layers.Module):
     spatial_pos_emb = TrainablePositionalEmbedding(
         name='spatial_pos_emb',
         embedding_dim=self.model_dim,
-        max_seq_length=spatial_seq_length,
+        max_seq_length=spatial_seq_length,  # pyrefly: ignore[bad-argument-type]
         dtype=self.dtype,
         fprop_dtype=self.fprop_dtype,
-    )(seq_length=spatial_seq_length)
+    )(seq_length=spatial_seq_length)  # pyrefly: ignore[bad-argument-type]
     num_row_patches = h // self.patch_size
     num_col_patches = w // self.patch_size
     if spatial_pos_emb_shape != (num_row_patches, num_col_patches):
