@@ -187,8 +187,8 @@ class Module(nn.Module):
     fprop_dtype: Activations dtype to use.
   """
 
-  dtype: jnp.dtype = jnp.float32
-  fprop_dtype: jnp.dtype = jnp.float32
+  dtype: jnp.dtype = jnp.float32  # pyrefly: ignore[bad-assignment]
+  fprop_dtype: jnp.dtype = jnp.float32  # pyrefly: ignore[bad-assignment]
 
   @nn.nowrap
   def _cast_to_fprop_dtype(self, value: Any) -> Any:
