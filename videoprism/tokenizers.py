@@ -127,7 +127,7 @@ class SentencePieceTokenizer(Tokenizer):
       A tf.Tensor or tf.RaggedTensor of tokens.
     """
     text = tf.convert_to_tensor(text)
-    if text.ndim == 0:
+    if text.ndim == 0:  # pyrefly: ignore[missing-attribute]
 
       def fn(txt):
         """Tokenizes a single string."""
@@ -143,7 +143,7 @@ class SentencePieceTokenizer(Tokenizer):
         toks = self.to_int(strings, bos=bos, eos=eos)
         return tf.ragged.constant(toks)
 
-      out_type = tf.RaggedTensorSpec([text.shape[0], None], tf.int32)
+      out_type = tf.RaggedTensorSpec([text.shape[0], None], tf.int32)  # pyrefly: ignore[missing-attribute]
       return tf.py_function(fn, [text], Tout=out_type)
 
   @property
