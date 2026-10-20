@@ -28,7 +28,7 @@ ActivationFunc = Callable[[Array], Array]
 Initializer = nn.initializers.Initializer
 
 default_kernel_init = nn.initializers.lecun_normal()
-gelu = functools.partial(jax.nn.gelu, approximate=False)
+gelu = functools.partial(jax.nn.gelu, approximate=True)
 
 
 def identity(x: Array) -> Array:
